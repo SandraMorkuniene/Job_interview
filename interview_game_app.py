@@ -13,9 +13,7 @@ def is_valid_input(text):
 
 # Initialize session state
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "system", "content": "You are a professional interviewer conducting a mock interview."}
-    ]
+    st.session_state.messages = []
 if "question_count" not in st.session_state:
     st.session_state.question_count = 0
 if "fail_count" not in st.session_state:
@@ -30,7 +28,21 @@ st.title("🤖 AI-Powered Interview Chatbot")
 # User inputs
 job_title = st.text_input("Enter the job title (e.g., Software Engineer):")
 job_desc = st.text_area("Enter job description (optional):")
+
+# Interview mode selection
+interview_mode = st.selectbox(
+    "Select Interview Type",
+    ["Technical Interview", "Case Interview", "Behavioral Interview"]
+)
+
 temperature = st.slider("Adjust creativity (Temperature)", 0.1, 1.0, 0.7)
+
+# Define system prompts based on interview type
+interview_prompts = {
+    "Technical Interview": f"You are a hiring manager conducting a {job_title} technical interview. Ask job-specific technical questions one at a time, covering key concepts.",
+    "Case Interview": f"You are an interviewer conducting a {job_title} case interview. Present a business scenario or case study and ask how the candidate would analyze and solve it.",
+    "Behavioral Interview": f"You are a hiring manager conducting a {job_title} behavioral interview. Ask questions to assess how the candidate has handled situations in the past."
+}
 
 # Start Interview
 if st.button("Start Interview"):
@@ -40,13 +52,13 @@ if st.button("Start Interview"):
         st.warning("Please enter a job title to proceed.")
     else:
         with st.spinner("Preparing interview..."):
-            first_prompt = f"You are a hiring manager for a {job_title}. Conduct a professional interview and ask one question at a time. Start by introducing yourself and asking the first question."
-            
+            first_prompt = interview_prompts[interview_mode]
+
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=[{"role": "system", "content": first_prompt}],
                 temperature=temperature,
-                max_tokens=300,
+                max_tokens=200,
             )
             
             first_question = response.choices[0].message.content
@@ -81,7 +93,7 @@ if st.button("Submit Answer"):
             ]
             
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=chat_history,
                 temperature=temperature,
                 max_tokens=300,
