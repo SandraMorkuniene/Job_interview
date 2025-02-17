@@ -75,7 +75,7 @@ for msg in st.session_state.messages:
         st.markdown(f"**🧑 You:** {msg['content']}")
 
 # User response input
-user_input = st.text_area("Your Response:", key="user_input")
+user_input = st.text_area("Your Response:", key="user_input", value="")
 
 # Process user response
 if st.button("Submit Answer"):
@@ -120,5 +120,6 @@ if st.button("Submit Answer"):
                 # Continue asking the next question
                 st.session_state.messages.append({"role": "assistant", "content": ai_response})
                 st.session_state.question_count += 1
+            st.session_state.user_input = ""
 
             st.rerun()  # Refresh UI to show updated conversation
