@@ -109,4 +109,4 @@ if st.button("Submit Answer"):
                 st.session_state.messages.append({"role": "assistant", "content": ai_response})
                 st.session_state.question_count += 1
 
-            st.experimental_rerun()  # Refresh UI to show updated conversation
+            st.rerun()  # Refresh UI to show updated conversation
