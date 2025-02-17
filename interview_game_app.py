@@ -39,9 +39,9 @@ temperature = st.slider("Adjust creativity (Temperature)", 0.1, 1.0, 0.7)
 # Start Interview
 if st.button("Start Interview"):
     if not is_valid_input(job_title + job_desc):
-        st.error("❌ Inappropriate input detected! Please enter a valid job title/description.")
+        st.error("Inappropriate input detected! Please enter a valid job title/description.")
     elif job_title.strip() == "":
-        st.warning("⚠️ Please enter a job title to proceed.")
+        st.warning("Please enter a job title to proceed.")
     else:
         with st.spinner("Preparing interview..."):
             first_prompt = f"You are a hiring manager for a {job_title}. Conduct a professional interview and ask one question at a time. Start by introducing yourself and asking the first question."
@@ -70,9 +70,9 @@ user_input = st.text_area("Your Response:", key="user_input")
 # Process user response
 if st.button("Submit Answer"):
     if not is_valid_input(user_input):
-        st.error("❌ Inappropriate response detected!")
+        st.error("Inappropriate response detected!")
     elif user_input.strip() == "":
-        st.warning("⚠️ Please enter a response.")
+        st.warning("Please enter a response.")
     else:
         st.session_state.messages.append({"role": "user", "content": user_input})
 
@@ -97,17 +97,17 @@ if st.button("Submit Answer"):
 
             # Check stopping conditions
             if st.session_state.question_count >= MAX_QUESTIONS:
-                final_feedback = "✅ You've completed the interview! Here is your overall evaluation:
+                final_feedback = "You've completed the interview! Here is your overall evaluation:
 
 " + ai_response
                 st.session_state.messages.append({"role": "assistant", "content": final_feedback})
-                st.success("🏆 Interview Complete!")
+                st.success("Interview Complete!")
             elif st.session_state.fail_count >= MAX_FAILS:
-                final_feedback = "❌ You've struggled with multiple questions. Consider reviewing key concepts before retrying. Here are some improvement areas:
+                final_feedback = "You've struggled with multiple questions. Consider reviewing key concepts before retrying. Here are some improvement areas:
 
 " + ai_response
                 st.session_state.messages.append({"role": "assistant", "content": final_feedback})
-                st.error("🚨 Interview Ended Early Due to Low Performance.")
+                st.error("Interview Ended Early Due to Low Performance.")
             else:
                 # Continue asking next question
                 st.session_state.messages.append({"role": "assistant", "content": ai_response})
