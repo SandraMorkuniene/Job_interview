@@ -97,15 +97,11 @@ if st.button("Submit Answer"):
 
             # Check stopping conditions
             if st.session_state.question_count >= MAX_QUESTIONS:
-                final_feedback = "You've completed the interview! Here is your overall evaluation:
-
-" + ai_response
+                final_feedback = "You've completed the interview! Here is your overall evaluation:" + ai_response
                 st.session_state.messages.append({"role": "assistant", "content": final_feedback})
                 st.success("Interview Complete!")
             elif st.session_state.fail_count >= MAX_FAILS:
-                final_feedback = "You've struggled with multiple questions. Consider reviewing key concepts before retrying. Here are some improvement areas:
-
-" + ai_response
+                final_feedback = "You've struggled with multiple questions. Consider reviewing key concepts before retrying. Here are some improvement areas:" + ai_response
                 st.session_state.messages.append({"role": "assistant", "content": final_feedback})
                 st.error("Interview Ended Early Due to Low Performance.")
             else:
