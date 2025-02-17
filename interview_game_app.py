@@ -74,8 +74,12 @@ for msg in st.session_state.messages:
     elif msg["role"] == "user":
         st.markdown(f"**🧑 You:** {msg['content']}")
 
+# Initialize session state for user input
+if "user_input" not in st.session_state:
+    st.session_state.user_input = ""
+    
 # User response input
-user_input = st.text_area("Your Response:", key="user_input", value="")
+user_input = st.text_area("Your Response:", key="user_input")
 
 # Process user response
 if st.button("Submit Answer"):
