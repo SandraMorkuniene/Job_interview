@@ -1,14 +1,10 @@
- 
-
 import streamlit as st
-import openai
 import os
 import re
-
+from openai import OpenAI
 
 # Load OpenAI API Key
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Security guard: Prevent inappropriate inputs
 def is_valid_input(text):
@@ -45,13 +41,15 @@ if st.button("Start Interview"):
     else:
         with st.spinner("Preparing interview..."):
             first_prompt = f"You are a hiring manager for a {job_title}. Conduct a professional interview and ask one question at a time. Start by introducing yourself and asking the first question."
-            response = openai.ChatCompletion.create(
+            
+            response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "system", "content": first_prompt}],
                 temperature=temperature,
-                max_tokens=200,
+                max_tokens=300,
             )
-            first_question = response["choices"][0]["message"]["content"]
+            
+            first_question = response.choices[0].message.content
             st.session_state.messages.append({"role": "assistant", "content": first_question})
             st.session_state.question_count += 1
 
@@ -77,17 +75,19 @@ if st.button("Submit Answer"):
         st.session_state.messages.append({"role": "user", "content": user_input})
 
         with st.spinner("Analyzing your response..."):
-            # AI evaluates the answer and determines next step
+            # AI evaluates the answer and determines the next step
             chat_history = st.session_state.messages + [
                 {"role": "assistant", "content": "Evaluate the candidate’s answer. If it's good, acknowledge and ask the next question. If it's bad, provide feedback and either ask them to retry or move on."}
             ]
-            response = openai.ChatCompletion.create(
+            
+            response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=chat_history,
                 temperature=temperature,
                 max_tokens=300,
             )
-            ai_response = response["choices"][0]["message"]["content"]
+            
+            ai_response = response.choices[0].message.content
 
             # Track success or failure
             if "incorrect" in ai_response.lower() or "needs improvement" in ai_response.lower():
@@ -97,15 +97,15 @@ if st.button("Submit Answer"):
 
             # Check stopping conditions
             if st.session_state.question_count >= MAX_QUESTIONS:
-                final_feedback = "You've completed the interview! Here is your overall evaluation:" + ai_response
+                final_feedback = "You've completed the interview! Here is your overall evaluation:\n\n" + ai_response
                 st.session_state.messages.append({"role": "assistant", "content": final_feedback})
                 st.success("Interview Complete!")
             elif st.session_state.fail_count >= MAX_FAILS:
-                final_feedback = "You've struggled with multiple questions. Consider reviewing key concepts before retrying. Here are some improvement areas:" + ai_response
+                final_feedback = "You've struggled with multiple questions. Consider reviewing key concepts before retrying. Here are some improvement areas:\n\n" + ai_response
                 st.session_state.messages.append({"role": "assistant", "content": final_feedback})
                 st.error("Interview Ended Early Due to Low Performance.")
             else:
-                # Continue asking next question
+                # Continue asking the next question
                 st.session_state.messages.append({"role": "assistant", "content": ai_response})
                 st.session_state.question_count += 1
 
