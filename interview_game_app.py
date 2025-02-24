@@ -120,8 +120,12 @@ for msg in st.session_state.messages:
     elif msg["role"] == "user":
         st.markdown(f"**🧑 You:** {msg['content']}")
 
+# Initialize session state for the input field
+if "user_input" not in st.session_state:
+    st.session_state.user_input = ""
+
 # User response input
-user_input = st.text_area("Your Response:", key="user_input", value="")
+user_input = st.text_area("Your Response:", key="user_input")
 
 # Process user response
 if st.button("Submit Answer"):
@@ -147,5 +151,5 @@ if st.button("Submit Answer"):
             ai_response = response.choices[0].message.content
             st.session_state.messages.append({"role": "assistant", "content": ai_response})
 
-            # st.session_state.user_input = ""  Clear input field
-            st.experimental_rerun()
+            st.session_state.user_input = ""  Clear input field
+            #st.experimental_rerun()
