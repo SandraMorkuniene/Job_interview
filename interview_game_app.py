@@ -2,17 +2,41 @@ import streamlit as st
 import os
 import re
 from openai import OpenAI
-import pinecone
+from pinecone import Pinecone, ServerlessSpec
 
 # Load API key
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Initialize Pinecone
 pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment=os.getenv("PINECONE_ENVIRONMENT"))
+
 index_name = "interview-questions"
+embedding_dimension = 1536  # Make sure this matches your embedding model
+
+# Create index with ServerlessSpec if it does not exist
 if index_name not in pinecone.list_indexes():
-    pinecone.create_index(index_name, dimension=1536)  # Adapt dimension to your embedding model
-index = pinecone.Index(index_name)
+    try:
+        pinecone.create_index(
+            name=index_name,
+            dimension=embedding_dimension,
+            metric="cosine",  # or "dotproduct" or "euclidean" depending on your use case
+            spec=ServerlessSpec(
+                cloud="aws",  # Adjust cloud provider as needed
+                region="us-east-1"  # Select the appropriate region
+            )
+        )
+        st.success("Pinecone index created successfully!")
+    except Exception as e:
+        st.error(f"Failed to create Pinecone index: {e}")
+else:
+    st.info("Pinecone index already exists.")
+
+# Connect to the index
+try:
+    index = pinecone.Index(index_name)
+    st.success("Connected to Pinecone index successfully!")
+except Exception as e:
+    st.error(f"Failed to connect to Pinecone index: {e}")
 
 # Security guard: Prevent inappropriate inputs
 def is_valid_input(text):
