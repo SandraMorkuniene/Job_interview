@@ -2,9 +2,17 @@ import streamlit as st
 import os
 import re
 from openai import OpenAI
+import pinecone
 
-# Load OpenAI API Key
+# Load API key
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# Initialize Pinecone
+pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment=os.getenv("PINECONE_ENVIRONMENT"))
+index_name = "interview-questions"
+if index_name not in pinecone.list_indexes():
+    pinecone.create_index(index_name, dimension=1536)  # Adapt dimension to your embedding model
+index = pinecone.Index(index_name)
 
 # Security guard: Prevent inappropriate inputs
 def is_valid_input(text):
@@ -21,7 +29,7 @@ if "fail_count" not in st.session_state:
 
 # Configurable interview settings
 MAX_QUESTIONS = 10  
-MAX_FAILS = 3  # End interview if user fails 3 times in a row
+MAX_FAILS = 3  
 
 st.title("🤖 AI-Powered Interview Chatbot")
 
@@ -38,11 +46,20 @@ interview_mode = st.selectbox(
 temperature = st.slider("Adjust creativity (Temperature)", 0.1, 1.0, 0.7)
 
 # Define system prompts based on interview type
-interview_prompts = {
-    "Technical Interview": f"You are a hiring manager conducting a {job_title} technical interview. Ask job-specific technical questions one at a time, covering key concepts.",
-    "Case Interview": f"You are an interviewer conducting a {job_title} case interview. Present a business scenario or case study and ask how the candidate would analyze and solve it.",
-    "Behavioral Interview": f"You are a hiring manager conducting a {job_title} behavioral interview. Ask questions to assess how the candidate has handled situations in the past."
-}
+if job_desc.strip():
+    # Use job description if provided
+    interview_prompts = {
+        "Technical Interview": f"You are a hiring manager conducting a {job_title} technical interview. Consider this job description: {job_desc}. Ask specific technical questions related to the role.",
+        "Case Interview": f"You are an interviewer conducting a {job_title} case interview. Taking into account the job description: {job_desc}. Present a business scenario or case study for the candidate to solve.",
+        "Behavioral Interview": f"You are a hiring manager conducting a {job_title} behavioral interview. Considering the job description: {job_desc}, ask questions about how the candidate handled past work situations."
+    }
+else:
+    # Fallback to job title only
+    interview_prompts = {
+        "Technical Interview": f"You are a hiring manager conducting a technical interview for a {job_title} role. Ask job-specific technical questions one at a time.",
+        "Case Interview": f"You are an interviewer conducting a case interview for a {job_title} position. Present a business scenario or case study for the candidate to analyze and solve.",
+        "Behavioral Interview": f"You are a hiring manager conducting a behavioral interview for a {job_title} role. Ask questions to assess how the candidate has handled past work situations."
+    }
 
 # Start Interview
 if st.button("Start Interview"):
@@ -62,8 +79,19 @@ if st.button("Start Interview"):
             )
             
             first_question = response.choices[0].message.content
-            st.session_state.messages.append({"role": "assistant", "content": first_question})
-            st.session_state.question_count += 1
+            
+            # Check for duplicate questions in Pinecone
+            vector = client.embeddings.create(model="text-embedding-ada-002", input=[first_question])
+            query_vector = vector['data'][0]['embedding']
+            
+            search_results = index.query(vector=query_vector, top_k=1, include_values=True)
+            
+            if search_results['matches'] and search_results['matches'][0]['score'] > 0.8:
+                st.warning("Duplicate question detected! Generating a new question...")
+            else:
+                index.upsert([("q_" + str(st.session_state.question_count), query_vector)])
+                st.session_state.messages.append({"role": "assistant", "content": first_question})
+                st.session_state.question_count += 1
 
 # Chat Interface
 st.subheader("🗨️ Interview Chat")
@@ -87,9 +115,8 @@ if st.button("Submit Answer"):
         st.session_state.messages.append({"role": "user", "content": user_input})
 
         with st.spinner("Analyzing your response..."):
-            # AI evaluates the answer and determines the next step
             chat_history = st.session_state.messages + [
-                {"role": "assistant", "content": "Evaluate the candidate’s answer. If it's good, acknowledge and ask the next question. If it's bad, provide feedback and either ask them to retry or move on."}
+                {"role": "assistant", "content": "Evaluate the candidate’s answer and proceed accordingly."}
             ]
             
             response = client.chat.completions.create(
@@ -100,25 +127,7 @@ if st.button("Submit Answer"):
             )
             
             ai_response = response.choices[0].message.content
+            st.session_state.messages.append({"role": "assistant", "content": ai_response})
 
-            # Track success or failure
-            if "incorrect" in ai_response.lower() or "needs improvement" in ai_response.lower():
-                st.session_state.fail_count += 1
-            else:
-                st.session_state.fail_count = 0  # Reset fail count on correct answer
-
-            # Check stopping conditions
-            if st.session_state.question_count >= MAX_QUESTIONS:
-                final_feedback = "You've completed the interview! Here is your overall evaluation:\n\n" + ai_response
-                st.session_state.messages.append({"role": "assistant", "content": final_feedback})
-                st.success("Interview Complete!")
-            elif st.session_state.fail_count >= MAX_FAILS:
-                final_feedback = "You've struggled with multiple questions. Consider reviewing key concepts before retrying. Here are some improvement areas:\n\n" + ai_response
-                st.session_state.messages.append({"role": "assistant", "content": final_feedback})
-                st.error("Interview Ended Early Due to Low Performance.")
-            else:
-                # Continue asking the next question
-                st.session_state.messages.append({"role": "assistant", "content": ai_response})
-                st.session_state.question_count += 1
-
-            st.rerun()  # Refresh UI to show updated conversation
+            st.session_state.user_input = ""  # Clear input field
+            st.experimental_rerun()
