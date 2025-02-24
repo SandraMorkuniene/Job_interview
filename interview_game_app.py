@@ -124,8 +124,12 @@ for msg in st.session_state.messages:
 if "user_input" not in st.session_state:
     st.session_state.user_input = ""
 
+# Callback function to clear the input field
+def clear_input():
+    st.session_state.user_input = ""
+    
 # User response input
-user_input = st.text_area("Your Response:", key="user_input")
+user_input = st.text_area("Your Response:", value=st.session_state.user_input, key="user_input", on_change=clear_input)
 
 # Process user response
 if st.button("Submit Answer"):
@@ -151,5 +155,5 @@ if st.button("Submit Answer"):
             ai_response = response.choices[0].message.content
             st.session_state.messages.append({"role": "assistant", "content": ai_response})
 
-            st.session_state.user_input = ""  #Clear input field
-            #st.experimental_rerun()
+        # Manually clear the input field after processing
+        clear_input()
