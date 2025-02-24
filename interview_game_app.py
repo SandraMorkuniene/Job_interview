@@ -30,7 +30,7 @@ if index_name not in pc.list_indexes().names():
         print(f"Error creating index: {e}")
 
 # Connect to the index
-index = pc.Index(index_name)
+index = pc.index(index_name)
 
 # Security guard: Prevent inappropriate inputs
 def is_valid_input(text):
@@ -100,7 +100,7 @@ if st.button("Start Interview"):
             
             # Check for duplicate questions in Pinecone
             vector = client.embeddings.create(model="text-embedding-ada-002", input=[first_question])
-            query_vector = vector['data'][0]['embedding']
+            query_vector = vector.data[0].embedding
             
             search_results = index.query(vector=query_vector, top_k=1, include_values=True)
             
