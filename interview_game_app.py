@@ -9,35 +9,28 @@ from pinecone import ServerlessSpec
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Initialize Pinecone
-pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment=os.getenv("PINECONE_ENVIRONMENT"))
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
 index_name = "interview-questions"
-embedding_dimension = 1536  # Make sure this matches your embedding model
+embedding_dimension = 1536  # For OpenAI text-embedding-ada-002 model
 
-# Create index with ServerlessSpec if it does not exist
-if index_name not in pinecone.list_indexes():
+# Check if index exists, if not, create it
+if index_name not in pc.list_indexes().names():
     try:
-        pinecone.create_index(
+        pc.create_index(
             name=index_name,
             dimension=embedding_dimension,
-            metric="cosine",  # or "dotproduct" or "euclidean" depending on your use case
+            metric="cosine",  # Use 'cosine', 'dotproduct', or 'euclidean' as needed
             spec=ServerlessSpec(
-                cloud="aws",  # Adjust cloud provider as needed
-                region="us-east-1"  # Select the appropriate region
+                cloud="aws",  # Your cloud provider
+                region="us-east-1"  # Appropriate region
             )
         )
-        st.success("Pinecone index created successfully!")
     except Exception as e:
-        st.error(f"Failed to create Pinecone index: {e}")
-else:
-    st.info("Pinecone index already exists.")
+        print(f"Error creating index: {e}")
 
 # Connect to the index
-try:
-    index = pinecone.Index(index_name)
-    st.success("Connected to Pinecone index successfully!")
-except Exception as e:
-    st.error(f"Failed to connect to Pinecone index: {e}")
+index = pc.Index(index_name)
 
 # Security guard: Prevent inappropriate inputs
 def is_valid_input(text):
