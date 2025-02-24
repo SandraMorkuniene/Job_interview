@@ -30,7 +30,7 @@ if index_name not in pc.list_indexes().names():
         print(f"Error creating index: {e}")
 
 # Connect to the index
-index = pc.index(index_name)
+index = pc.Index(index_name)
 
 # Security guard: Prevent inappropriate inputs
 def is_valid_input(text):
