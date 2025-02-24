@@ -3,7 +3,7 @@ import os
 import re
 from openai import OpenAI
 import pinecone 
-from pinecone import ServerlessSpec
+from pinecone import Pinecone, ServerlessSpec
 
 # Load API key
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
