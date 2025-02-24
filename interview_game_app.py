@@ -2,7 +2,8 @@ import streamlit as st
 import os
 import re
 from openai import OpenAI
-from pinecone import Pinecone, ServerlessSpec
+import pinecone 
+from pinecone import ServerlessSpec
 
 # Load API key
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
