@@ -17,8 +17,8 @@ from langchain_community.vectorstores import Pinecone
 # Initialize OpenAI client and Pinecone
 client = ChatOpenAI(model="gpt-4o", openai_api_key=os.getenv("OPENAI_API_KEY"))
 #client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-index = pc.Index("interview-questions")
+pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment="us-east-1")  # adjust environment
+index = pinecone.Index("interview-questions")
 
 # Initialize LangChain memory
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
