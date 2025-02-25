@@ -19,16 +19,16 @@ client = ChatOpenAI(model="gpt-4o", openai_api_key=os.getenv("OPENAI_API_KEY"))
 #client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-# Initialize Pinecone directly
-pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment="us-east-1")
+# Initialize Pinecone client by creating an instance of Pinecone class
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
 index_name = "interview-questions"
 embedding_dimension = 1536  # For OpenAI text-embedding-ada-002 model
 
 # Check if index exists, if not, create it
-if index_name not in pinecone.list_indexes():
+if index_name not in pc.list_indexes().names():
     try:
-        pinecone.create_index(
+        pc.create_index(
             name=index_name,
             dimension=embedding_dimension,
             metric="cosine",  # Use 'cosine', 'dotproduct', or 'euclidean' as needed
@@ -40,8 +40,9 @@ if index_name not in pinecone.list_indexes():
     except Exception as e:
         print(f"Error creating index: {e}")
 
-# Connect to the index using LangChain's Pinecone integration
-index = Pinecone.from_existing_index(index_name=index_name, embedding_function=OpenAIEmbeddings())
+# Connect to the index using LangChain's Pinecone abstraction
+# Create a LangChain Pinecone vector store instance
+index = LangChainPinecone.from_existing_index(index_name=index_name, embedding_function=OpenAIEmbeddings())
 
 # Initialize LangChain memory
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
