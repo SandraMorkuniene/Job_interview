@@ -2,7 +2,7 @@ import streamlit as st
 import pinecone
 from pinecone import Pinecone, ServerlessSpec
 import os
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
@@ -57,7 +57,7 @@ def get_interview_agent():
     tools = [duplicate_tool]
     
     agent = initialize_agent(
-        tools, 
+        tools=tools, 
         agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION, 
         llm=client,
         memory=memory, 
