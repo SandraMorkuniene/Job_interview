@@ -1,4 +1,5 @@
 import streamlit as st
+from pinecone import Pinecone, ServerlessSpec
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
