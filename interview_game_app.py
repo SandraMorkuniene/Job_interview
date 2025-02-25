@@ -17,8 +17,32 @@ from langchain_community.vectorstores import Pinecone
 # Initialize OpenAI client and Pinecone
 client = ChatOpenAI(model="gpt-4o", openai_api_key=os.getenv("OPENAI_API_KEY"))
 #client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment="us-east-1")  # adjust environment
-index = pinecone.Index("interview-questions")
+
+
+# Initialize Pinecone
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+
+index_name = "interview-questions"
+embedding_dimension = 1536  # For OpenAI text-embedding-ada-002 model
+
+# Check if index exists, if not, create it
+if index_name not in pc.list_indexes().names():
+    try:
+        pc.create_index(
+            name=index_name,
+            dimension=embedding_dimension,
+            metric="cosine",  # Use 'cosine', 'dotproduct', or 'euclidean' as needed
+            spec=ServerlessSpec(
+                cloud="aws",  # Your cloud provider
+                region="us-east-1"  # Appropriate region
+            )
+        )
+    except Exception as e:
+        print(f"Error creating index: {e}")
+
+# Connect to the index
+index = pc.Index(index_name)
+
 
 # Initialize LangChain memory
 memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
