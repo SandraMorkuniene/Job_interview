@@ -11,7 +11,7 @@ from openai import Image as OpenAIImage
 
 # Initialize OpenAI client and Pinecone
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-pc = pinecone.Client(api_key=os.getenv("PINECONE_API_KEY"))
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 index = pc.Index("interview-questions")
 
 # Initialize LangChain memory
