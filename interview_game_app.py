@@ -7,11 +7,12 @@ from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.agents import initialize_agent, Tool, AgentType
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Pinecone
 from openai import OpenAI
 from langchain.tools import Tool
 from openai import Image as OpenAIImage
+from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import Pinecone
+
 
 # Initialize OpenAI client and Pinecone
 client = ChatOpenAI(model="gpt-4o", openai_api_key=os.getenv("OPENAI_API_KEY"))
@@ -34,7 +35,7 @@ embeddings = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=os.
 # Function to check for duplicate questions
 def check_duplicate_question(question):
     vector = embeddings.embed_query(question)
-    query_vector = vector['data'][0]['embedding']
+    #query_vector = vector['data'][0]['embedding']
     
     search_results = index.query(vector=vector, top_k=1, include_values=True)
     
