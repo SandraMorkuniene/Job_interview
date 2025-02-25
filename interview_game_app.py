@@ -7,6 +7,8 @@ from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.agents import initialize_agent, Tool, AgentType
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import Pinecone
 from openai import OpenAI
 from langchain.tools import Tool
 from openai import Image as OpenAIImage
@@ -27,12 +29,14 @@ def get_question_chain():
     llm_chain = LLMChain(prompt=prompt, llm=client)
     return llm_chain
 
+embeddings = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=os.getenv("OPENAI_API_KEY"))
+
 # Function to check for duplicate questions
 def check_duplicate_question(question):
-    vector = client.embeddings.create(model="text-embedding-ada-002", input=[question])
+    vector = embeddings.embed_query(question)
     query_vector = vector['data'][0]['embedding']
     
-    search_results = index.query(vector=query_vector, top_k=1, include_values=True)
+    search_results = index.query(vector=vector, top_k=1, include_values=True)
     
     if search_results['matches'] and search_results['matches'][0]['score'] > 0.8:
         return True
