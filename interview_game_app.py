@@ -20,15 +20,15 @@ client = ChatOpenAI(model="gpt-4o", openai_api_key=os.getenv("OPENAI_API_KEY"))
 
 
 # Initialize Pinecone
-pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment="us-east-1")
 
 index_name = "interview-questions"
 embedding_dimension = 1536  # For OpenAI text-embedding-ada-002 model
 
 # Check if index exists, if not, create it
-if index_name not in pc.list_indexes().names():
+if index_name not in pinecone.list_indexes():
     try:
-        pc.create_index(
+        pinecone.create_index(
             name=index_name,
             dimension=embedding_dimension,
             metric="cosine",  # Use 'cosine', 'dotproduct', or 'euclidean' as needed
@@ -41,7 +41,7 @@ if index_name not in pc.list_indexes().names():
         print(f"Error creating index: {e}")
 
 # Connect to the index
-index = pc.Index(index_name)
+index = pinecone.Index(index_name)
 
 
 # Initialize LangChain memory
