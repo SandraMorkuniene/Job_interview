@@ -1,17 +1,19 @@
 import streamlit as st
+import pinecone
 from pinecone import Pinecone, ServerlessSpec
+import os
+from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.agents import initialize_agent, Tool, AgentType
 from openai import OpenAI
-import os
-import pinecone
 from langchain.tools import Tool
 from openai import Image as OpenAIImage
 
 # Initialize OpenAI client and Pinecone
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"))
+#client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 index = pc.Index("interview-questions")
 
