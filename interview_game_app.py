@@ -12,7 +12,7 @@ from langchain.tools import Tool
 from openai import Image as OpenAIImage
 
 # Initialize OpenAI client and Pinecone
-client = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"))
+client = ChatOpenAI(model="gpt-4o", openai_api_key=os.getenv("OPENAI_API_KEY"))
 #client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 index = pc.Index("interview-questions")
@@ -59,6 +59,7 @@ def get_interview_agent():
     agent = initialize_agent(
         tools, 
         agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION, 
+        llm=client,
         memory=memory, 
         verbose=True
     )
