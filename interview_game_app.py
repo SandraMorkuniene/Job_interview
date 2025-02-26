@@ -4,7 +4,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain.agents import initialize_agent, Tool
 
 # Initialize the OpenAI LLM (replace 'your-api-key' with a valid OpenAI API key)
-llm = OpenAI(openai_api_key='your-api-key')
+llm = OpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"))
 
 # Set up Streamlit app
 st.title('AI Interviewer Based on Job Description')
