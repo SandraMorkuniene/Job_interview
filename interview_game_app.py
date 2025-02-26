@@ -12,8 +12,8 @@ if 'llm_model_name' not in st.session_state:
     st.session_state['llm_model_name'] = 'gpt-4o'
 
 # Set up Streamlit app
-st.title('AI Interviewer Based on Job Description')
-st.markdown("This app generates interview questions based on a job description and provides feedback.")
+st.title('AI Interviewer')
+st.markdown("This app generates job interview questions and provides feedback.")
 
 # Input job title, description, interview type, and model selection
 job_title = st.text_input('Enter the Job Title:')
@@ -63,7 +63,8 @@ question_chain = LLMChain(
 
 feedback_chain = LLMChain(
     llm=llm,
-    prompt=feedback_template
+    prompt=feedback_template,
+    output_key='feedback'
 )
 
 # Initialize session state for persistence
@@ -71,13 +72,13 @@ if 'questions' not in st.session_state:
     st.session_state['questions'] = []
 if 'current_question_index' not in st.session_state:
     st.session_state['current_question_index'] = -1
-if 'response' not in st.session_state:
-    st.session_state['response'] = ''
 if 'feedback' not in st.session_state:
     st.session_state['feedback'] = ''
+if 'conversation' not in st.session_state:
+    st.session_state['conversation'] = []
 
-# Generate a batch of 10 questions
-if st.button('Generate Interview Question') and job_description and job_title:
+# Generate questions
+if st.button('Start Interview') and job_description and job_title:
     st.session_state['questions'] = [
         question_chain.run({
             'job_title': job_title,
@@ -88,32 +89,45 @@ if st.button('Generate Interview Question') and job_description and job_title:
     ]
     st.session_state['current_question_index'] = 0
     st.session_state['feedback'] = ''
-    st.session_state['response'] = ''
+    st.session_state['conversation'] = []
 
-# Display the current question and handle responses
+# Display chat-like conversation
+for message in st.session_state['conversation']:
+    if message['type'] == 'question':
+        st.chat_message("assistant").markdown(f"**Question:** {message['content']}")
+    elif message['type'] == 'response':
+        st.chat_message("user").markdown(f"**Your Response:** {message['content']}")
+    elif message['type'] == 'feedback':
+        st.chat_message("assistant").markdown(f"**Feedback:** {message['content']}")
+
+# If questions are available, continue the interview flow
 if st.session_state['questions'] and st.session_state['current_question_index'] < len(st.session_state['questions']):
-    st.subheader('Interview Question:')
-    st.write(st.session_state['questions'][st.session_state['current_question_index']])
+    current_question = st.session_state['questions'][st.session_state['current_question_index']]
+    
+    # Show the current question in a chat-like interface
+    st.chat_message("assistant").markdown(f"**Question:** {current_question}")
+    
+    # Capture candidate's response
+    response = st.text_input('Your Response:', key='response_input')
 
-    st.session_state['response'] = st.text_input('Candidate Response:', st.session_state['response'])
-
-    if st.button('Submit Response') and st.session_state['response']:
-        st.session_state['feedback'] = feedback_chain.run({
-            'response': st.session_state['response'],
+    # Automatically generate feedback and move to the next question
+    if st.button('Submit Response') and response:
+        st.session_state['conversation'].append({'type': 'question', 'content': current_question})
+        st.session_state['conversation'].append({'type': 'response', 'content': response})
+        
+        feedback = feedback_chain.run({
+            'response': response,
             'job_description': job_description,
             'interview_type': interview_type
         })
+        
+        st.session_state['feedback'] = feedback
+        st.session_state['conversation'].append({'type': 'feedback', 'content': feedback})
+        
+        # Move to the next question automatically
         st.session_state['current_question_index'] += 1
         st.session_state['response'] = ''
 
-# Show feedback if available
-if st.session_state['feedback']:
-    st.subheader('Feedback:')
-    st.write(st.session_state['feedback'])
-
-# Completion message
+# End of interview
 if st.session_state['current_question_index'] >= len(st.session_state['questions']) and st.session_state['current_question_index'] > 0:
     st.markdown('### Interview Completed! Thank you for your responses.')
-
-st.markdown("---")
-st.markdown("Developed using LangChain and Streamlit.")
