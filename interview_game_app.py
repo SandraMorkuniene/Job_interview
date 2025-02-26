@@ -7,18 +7,22 @@ from langchain.agents import initialize_agent, Tool
 # Initialize the OpenAI LLM (replace 'your-api-key' with a valid OpenAI API key)
 if 'llm_temperature' not in st.session_state:
     st.session_state['llm_temperature'] = 0.7
-
-llm = OpenAI(openai_api_key='your-api-key', temperature=st.session_state['llm_temperature'])
+if 'llm_model_name' not in st.session_state:
+    st.session_state['llm_model_name'] = 'gpt-4o'
 
 # Set up Streamlit app
 st.title('AI Interviewer Based on Job Description')
 st.markdown("This app generates interview questions based on a job description and provides feedback.")
 
-# Input job title, description, and interview type
+# Input job title, description, interview type, and model selection
 job_title = st.text_input('Enter the Job Title:')
 job_description = st.text_area('Enter the Job Description:', height=200)
 interview_type = st.selectbox('Select Interview Type:', ['Technical', 'Business Case Scenario', 'Behavioral'])
 st.session_state['llm_temperature'] = st.slider('Set LLM Temperature:', 0.0, 1.0, 0.7)
+st.session_state['llm_model_name'] = st.selectbox('Select LLM Model:', ['gpt-3.5-turbo', 'gpt-4', 'gpt-4o'])
+
+# Initialize the LLM with selected model and temperature
+llm = OpenAI(openai_api_key='your-api-key', model_name=st.session_state['llm_model_name'], temperature=st.session_state['llm_temperature'])
 
 # Initialize memory to avoid question repetition
 memory = ConversationBufferMemory(memory_key='conversation_history', return_messages=True)
@@ -63,7 +67,7 @@ feedback_chain = LLMChain(
 if 'questions' not in st.session_state:
     st.session_state['questions'] = []
 if 'current_question_index' not in st.session_state:
-    st.session_state['current_question_index'] = 0
+    st.session_state['current_question_index'] = -1
 if 'response' not in st.session_state:
     st.session_state['response'] = ''
 if 'feedback' not in st.session_state:
@@ -105,9 +109,8 @@ if st.session_state['feedback']:
     st.write(st.session_state['feedback'])
 
 # Completion message
-if st.session_state['current_question_index'] >= len(st.session_state['questions']):
+if st.session_state['current_question_index'] >= len(st.session_state['questions']) and st.session_state['current_question_index'] > 0:
     st.markdown('### Interview Completed! Thank you for your responses.')
 
 st.markdown("---")
 st.markdown("Developed using LangChain and Streamlit.")
-
