@@ -1,148 +1,159 @@
 import streamlit as st
-import pinecone
 import os
-#from pinecone import Pinecone, ServerlessSpec
-from langchain_community.chat_models import ChatOpenAI
-from langchain.memory import ConversationBufferMemory
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
-from langchain.agents import initialize_agent, Tool, AgentType
+import re
 from openai import OpenAI
-from langchain.tools import Tool
-from openai import Image as OpenAIImage
-from langchain_community.vectorstores import Pinecone as LangChainPinecone
-from langchain_community.embeddings import OpenAIEmbeddings
+import pinecone
+from pinecone import Pinecone, ServerlessSpec
 
-# Initialize OpenAI client and Pinecone
-client = ChatOpenAI(model="gpt-4o", openai_api_key=os.getenv("OPENAI_API_KEY"))
-#client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+# Load API key
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Initialize Pinecone
-pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment="us-east-1")
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
 index_name = "interview-questions"
 embedding_dimension = 1536  # For OpenAI text-embedding-ada-002 model
 
 # Check if index exists, if not, create it
-if index_name not in pinecone.list_indexes():
+if index_name not in pc.list_indexes().names():
     try:
-        pinecone.create_index(
+        pc.create_index(
             name=index_name,
             dimension=embedding_dimension,
-            metric="cosine"
+            metric="cosine",  # Use 'cosine', 'dotproduct', or 'euclidean' as needed
+            spec=ServerlessSpec(
+                cloud="aws",  # Your cloud provider
+                region="us-east-1"  # Appropriate region
+            )
         )
     except Exception as e:
         print(f"Error creating index: {e}")
 
-# Connect to the index using LangChain's Pinecone abstraction
-index = LangChainPinecone.from_existing_index(index_name=index_name, embedding_function=OpenAIEmbeddings())
+# Connect to the index
+index = pc.Index(index_name)
 
-# Initialize LangChain memory
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+# Security guard: Prevent inappropriate inputs
+def is_valid_input(text):
+    inappropriate_words = ["hack", "illegal", "scam", "exploit", "malware"]
+    return not any(word in text.lower() for word in inappropriate_words)
 
-# Function to get the question chain
-def get_question_chain():
-    template = "Generate a question for the interview of a {job_title} with interview type {interview_mode}. Job description: {job_description}"
-    prompt = PromptTemplate(input_variables=["job_title", "interview_mode", "job_description"], template=template)
-    llm_chain = LLMChain(prompt=prompt, llm=client)
-    return llm_chain
+# Initialize session state
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "question_count" not in st.session_state:
+    st.session_state.question_count = 0
+if "fail_count" not in st.session_state:
+    st.session_state.fail_count = 0
 
-embeddings = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=os.getenv("OPENAI_API_KEY"))
+# Configurable interview settings
+MAX_QUESTIONS = 10
+MAX_FAILS = 3
 
-# Function to check for duplicate questions
-def check_duplicate_question(question):
-    vector = embeddings.embed_query(question)
-    #query_vector = vector['data'][0]['embedding']
-    
-    search_results = index.query(vector=vector, top_k=1, include_values=True)
-    
-    if search_results['matches'] and search_results['matches'][0]['score'] > 0.8:
-        return True
-    else:
-        index.upsert([("q_" + str(len(search_results['matches'])), query_vector)])
-        return False
+st.title("🤖 AI-Powered Interview Chatbot")
 
-# Function to generate image with DALL·E for visual aid
-def generate_image_prompt(question):
-    image_prompt = f"Create an image that visually represents the concept of: {question}. The image should help explain the concept in a clear and easy-to-understand way."
-    response = OpenAIImage.create(prompt=image_prompt, n=1, size="1024x1024")
-    image_url = response['data'][0]['url']
-    return image_url
-
-# Function to create the interview agent
-def get_interview_agent():
-    duplicate_tool = Tool.from_function(
-        func=check_duplicate_question,
-        name="DuplicateChecker",
-        description="Checks if a question is a duplicate using Pinecone embeddings."
-    )
-    tools = [duplicate_tool]
-    
-    agent = initialize_agent(
-        tools=tools, 
-        agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION, 
-        llm=client,
-        memory=memory, 
-        verbose=True
-    )
-    return agent
-
-# Function to evaluate the response
-def evaluate_response(response, question):
-    prompt = f"Evaluate the candidate's response to the following question:\n\nQuestion: {question}\nResponse: {response}\n\nProvide feedback on the quality of the response, whether it's correct, and any improvements or suggestions."
-    feedback = client.completions.create(model="gpt-4o", prompt=prompt, max_tokens=150)
-    return feedback['choices'][0]['text'].strip()
-
-# Streamlit app interface
-st.title("🤖 AI-Powered Adaptive Interview Chatbot")
-
+# User inputs
 job_title = st.text_input("Enter the job title (e.g., Software Engineer):")
 job_desc = st.text_area("Enter job description (optional):")
-interview_mode = st.selectbox("Select Interview Type", ["Technical Interview", "Case Interview", "Behavioral Interview"])
 
-# Initialize question chain and agent
-question_chain = get_question_chain()
-agent = get_interview_agent()
+# Interview mode selection
+interview_mode = st.selectbox(
+    "Select Interview Type",
+    ["Technical Interview", "Case Interview", "Behavioral Interview"]
+)
 
-# Start the interview button
+temperature = st.slider("Adjust creativity (Temperature)", 0.1, 1.0, 0.7)
+
+# Define system prompts based on interview type
+if job_desc.strip():
+    # Use job description if provided
+    interview_prompts = {
+        "Technical Interview": f"You are a hiring manager conducting a {job_title} technical interview. Consider this job description: {job_desc}. Ask specific technical questions related to the role.",
+        "Case Interview": f"You are an interviewer conducting a {job_title} case interview. Taking into account the job description: {job_desc}. Present a business scenario or case study for the candidate to solve.",
+        "Behavioral Interview": f"You are a hiring manager conducting a {job_title} behavioral interview. Considering the job description: {job_desc}, ask questions about how the candidate handled past work situations."
+    }
+else:
+    # Fallback to job title only
+    interview_prompts = {
+        "Technical Interview": f"You are a hiring manager conducting a technical interview for a {job_title} role. Ask job-specific technical questions one at a time.",
+        "Case Interview": f"You are an interviewer conducting a case interview for a {job_title} position. Present a business scenario or case study for the candidate to analyze and solve.",
+        "Behavioral Interview": f"You are a hiring manager conducting a behavioral interview for a {job_title} role. Ask questions to assess how the candidate has handled past work situations."
+    }
+
+# Start Interview
 if st.button("Start Interview"):
-    # Generate the initial question
-    question = question_chain.run({
-        "job_title": job_title,
-        "job_description": job_desc,
-        "interview_mode": interview_mode
-    })
+    if not is_valid_input(job_title + job_desc):
+        st.error("Inappropriate input detected! Please enter a valid job title/description.")
+    elif job_title.strip() == "":
+        st.warning("Please enter a job title to proceed.")
+    else:
+        with st.spinner("Preparing interview..."):
+            first_prompt = interview_prompts[interview_mode]
 
-    # Check if the generated question is a duplicate
-    is_duplicate = check_duplicate_question(question)
-    
-    if is_duplicate:
-        st.warning("Duplicate question detected! Generating a new question...")
-        # Generate a new question if a duplicate is found
-        question = question_chain.run({
-            "job_title": job_title,
-            "job_description": job_desc,
-            "interview_mode": interview_mode
-        })
-    
-    # Show the interview question
-    st.session_state.messages.append({"role": "assistant", "content": question})
-    st.markdown(f"**🤖 AI:** {question}")
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "system", "content": first_prompt}],
+                temperature=temperature,
+                max_tokens=200,
+            )
 
-    # Simulate collecting candidate response (you can integrate an actual input field here)
-    candidate_response = st.text_area("Your response:", key="candidate_response")
+            first_question = response.choices[0].message.content
 
-    # Process the response and provide feedback
-    if candidate_response:
-        st.session_state.messages.append({"role": "user", "content": candidate_response})
-        
-        # Evaluate the candidate's response
-        feedback = evaluate_response(candidate_response, question)
-        st.markdown(f"**🤖 Feedback:** {feedback}")
+            # Check for duplicate questions in Pinecone
+            vector = client.embeddings.create(model="text-embedding-ada-002", input=[first_question])
+            query_vector = vector.data[0].embedding
 
-        # Optionally provide visual aid if the candidate is struggling
-        if 'struggling' in candidate_response.lower():
-            st.warning("Candidate is struggling. Generating a visual aid...")
-            image_url = generate_image_prompt(question)
-            st.image(image_url, caption="Visual Aid", use_column_width=True)
+            search_results = index.query(vector=query_vector, top_k=1, include_values=True)
+
+            if search_results['matches'] and search_results['matches'][0]['score'] > 0.8:
+                st.warning("Duplicate question detected! Generating a new question...")
+            else:
+                index.upsert([("q_" + str(st.session_state.question_count), query_vector)])
+                st.session_state.messages.append({"role": "assistant", "content": first_question})
+                st.session_state.question_count += 1
+
+# Chat Interface
+st.subheader("🗨️ Interview Chat")
+
+for msg in st.session_state.messages:
+    if msg["role"] == "assistant":
+        st.markdown(f"**🤖 AI:** {msg['content']}")
+    elif msg["role"] == "user":
+        st.markdown(f"**🧑 You:** {msg['content']}")
+
+# Initialize session state for the input field
+if "user_input" not in st.session_state:
+    st.session_state.user_input = ""
+
+# Callback function to clear the input field
+def clear_input():
+    st.session_state.user_input = ""
+
+# User response input
+user_input = st.text_area("Your Response:", value=st.session_state.user_input, key="user_input", on_change=clear_input)
+
+# Process user response
+if st.button("Submit Answer"):
+    if not is_valid_input(user_input):
+        st.error("Inappropriate response detected!")
+    elif user_input.strip() == "":
+        st.warning("Please enter a response.")
+    else:
+        st.session_state.messages.append({"role": "user", "content": user_input})
+
+        with st.spinner("Analyzing your response..."):
+            chat_history = st.session_state.messages + [
+                {"role": "assistant", "content": "Evaluate the candidate’s answer and proceed accordingly."}
+            ]
+
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=chat_history,
+                temperature=temperature,
+                max_tokens=300,
+            )
+
+            ai_response = response.choices[0].message.content
+            st.session_state.messages.append({"role": "assistant", "content": ai_response})
+
+        # Manually clear the input field after processing
+        clear_input()
