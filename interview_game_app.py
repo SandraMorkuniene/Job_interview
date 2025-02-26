@@ -77,7 +77,7 @@ if 'feedback' not in st.session_state:
     st.session_state['feedback'] = ''
 
 # Generate a batch of 10 questions
-if st.button('Generate 10 Interview Questions') and job_description and job_title:
+if st.button('Generate Interview Question') and job_description and job_title:
     st.session_state['questions'] = [
         question_chain.run({
             'job_title': job_title,
