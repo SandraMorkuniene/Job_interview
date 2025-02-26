@@ -26,7 +26,8 @@ st.session_state['llm_model_name'] = st.selectbox('Select LLM Model:', ['gpt-3.5
 llm = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"), model_name=st.session_state['llm_model_name'], temperature=st.session_state['llm_temperature'])
 
 # Initialize memory to avoid question repetition
-memory = ConversationBufferMemory(memory_key='conversation_history', return_messages=True)
+memory = ConversationBufferMemory(memory_key='conversation_history', return_messages=True,  input_key='job_description', 
+    output_key='question')
 
 # Define prompt template for question generation
 question_template = PromptTemplate(
@@ -56,7 +57,8 @@ feedback_template = PromptTemplate(
 question_chain = LLMChain(
     llm=llm,
     prompt=question_template,
-    memory=memory
+    memory=memory,
+    output_key='question'
 )
 
 feedback_chain = LLMChain(
