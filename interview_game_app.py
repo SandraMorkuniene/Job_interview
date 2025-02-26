@@ -50,18 +50,30 @@ feedback_chain = LLMChain(
     prompt=feedback_template
 )
 
+# Initialize session state for persistence
+if 'question' not in st.session_state:
+    st.session_state['question'] = ''
+if 'response' not in st.session_state:
+    st.session_state['response'] = ''
+if 'feedback' not in st.session_state:
+    st.session_state['feedback'] = ''
+
 # Handle interview process
 if st.button('Generate Interview Question') and job_description:
-    question = question_chain.run({'job_description': job_description, 'conversation_history': memory.load_memory_variables({})['conversation_history']})
-    if question:
-        st.subheader('Interview Question:')
-        st.write(question)
+    st.session_state['question'] = question_chain.run({'job_description': job_description, 'conversation_history': memory.load_memory_variables({})['conversation_history']})
 
-        response = st.text_input('Candidate Response:')
-        if st.button('Get Feedback') and response:
-            feedback = feedback_chain.run({'response': response, 'job_description': job_description})
-            st.subheader('Feedback:')
-            st.write(feedback)
+if st.session_state['question']:
+    st.subheader('Interview Question:')
+    st.write(st.session_state['question'])
+
+    st.session_state['response'] = st.text_input('Candidate Response:', st.session_state['response'])
+
+    if st.button('Get Feedback') and st.session_state['response']:
+        st.session_state['feedback'] = feedback_chain.run({'response': st.session_state['response'], 'job_description': job_description})
+
+if st.session_state['feedback']:
+    st.subheader('Feedback:')
+    st.write(st.session_state['feedback'])
 
 st.markdown("---")
 st.markdown("Developed using LangChain and Streamlit.")
