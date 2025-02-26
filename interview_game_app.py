@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 from langchain import OpenAI, LLMChain, PromptTemplate
 from langchain.memory import ConversationBufferMemory
 from langchain.agents import initialize_agent, Tool
