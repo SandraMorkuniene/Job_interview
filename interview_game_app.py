@@ -10,38 +10,32 @@ from langchain.agents import initialize_agent, Tool, AgentType
 from openai import OpenAI
 from langchain.tools import Tool
 from openai import Image as OpenAIImage
+from langchain_community.vectorstores import Pinecone as LangChainPinecone
 from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_community.vectorstores import Pinecone
-
 
 # Initialize OpenAI client and Pinecone
 client = ChatOpenAI(model="gpt-4o", openai_api_key=os.getenv("OPENAI_API_KEY"))
 #client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-# Initialize Pinecone client by creating an instance of Pinecone class
-pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+# Initialize Pinecone
+pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment="us-east-1")
 
 index_name = "interview-questions"
 embedding_dimension = 1536  # For OpenAI text-embedding-ada-002 model
 
 # Check if index exists, if not, create it
-if index_name not in pc.list_indexes().names():
+if index_name not in pinecone.list_indexes():
     try:
-        pc.create_index(
+        pinecone.create_index(
             name=index_name,
             dimension=embedding_dimension,
-            metric="cosine",  # Use 'cosine', 'dotproduct', or 'euclidean' as needed
-            spec=ServerlessSpec(
-                cloud="aws",  # Your cloud provider
-                region="us-east-1"  # Appropriate region
-            )
+            metric="cosine"
         )
     except Exception as e:
         print(f"Error creating index: {e}")
 
 # Connect to the index using LangChain's Pinecone abstraction
-# Create a LangChain Pinecone vector store instance
 index = LangChainPinecone.from_existing_index(index_name=index_name, embedding_function=OpenAIEmbeddings())
 
 # Initialize LangChain memory
