@@ -1,5 +1,5 @@
 import streamlit as st
-#import pinecone
+import pinecone
 import os
 #from pinecone import Pinecone, ServerlessSpec
 from langchain_community.chat_models import ChatOpenAI
