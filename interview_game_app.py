@@ -65,8 +65,9 @@ feedback_template = PromptTemplate(
     Considering the response: "{response}",
     the job description: "{job_description}",
     and the interview type: "{interview_type}",
-    provide detailed feedback on how well this response aligns with the job requirements and expectations for this type of interview.
-    Assess the response based on relevance, clarity, depth of knowledge, and appropriateness for the interview type.
+    provide feedback on how well this response aligns with the expectations for this type of interview.
+    Assess the response based on relevance, depth of knowledge, and appropriateness (fit for interview type and also content itself: answer is correct or not) for the interview type. If it's good, acknowledge and ask the next question.If it's bad, provide feedback on ways how to improve it and move on.
+
     """
 )
 
