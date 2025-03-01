@@ -20,9 +20,9 @@ def is_input_safe(user_input: str) -> bool:
     """Check if the input is safe to process."""
     # Basic heuristics to prevent jailbreak attempts
     dangerous_patterns = [
-        r"(system|os|subprocess|exec|eval|import|open|globals|locals|__\w+__)",  # Code injection
+        r"(system|os|subprocess|import|open|globals|locals|__\w+__)",  # Code injection
         r"(sudo|rm -rf|chmod|chown|mkfs|:(){:|fork bomb|shutdown)",  # Dangerous shell commands
-        r"(simulate being|ignore previous instructions|bypass|jailbreak|pretend to be)",  # Prompt manipulation
+        r"(simulate being|ignore previous instructions|bypass|jailbreak|pretend to be| hack| scam )",  # Prompt manipulation
         r"(<script>|</script>|<iframe>|javascript:|onerror=)",  # XSS attempts
         r"(base64|decode|encode|pickle|unpickle)",  # Encoding/decoding that could lead to exploits
         r"(http[s]?://|ftp://|file://)",  # Block URLs to prevent phishing or unwanted links
@@ -85,10 +85,11 @@ if 'feedback' not in st.session_state:
 if 'conversation' not in st.session_state:
     st.session_state['conversation'] = []
 
-# Generate questions safely
 if st.button('Start Interview') and job_description and job_title:
-    if not is_input_safe(job_title) or not is_input_safe(job_description):
-        st.error("Your input contains potentially unsafe content. Please modify and try again.")
+    if not is_input_safe(job_title):
+        st.error("Your job title contains potentially unsafe content. Please modify and try again.")
+    elif not is_input_safe(job_description):
+        st.error("Your job description contains potentially unsafe content. Please modify and try again.")
     else:
         st.session_state['questions'] = [
             question_chain.run({
