@@ -157,7 +157,7 @@ if st.session_state['questions'] and 0 <= st.session_state['current_question_ind
             st.session_state['conversation'].append({'type': 'feedback', 'content': feedback})
             st.session_state['current_question_index'] += 1
 
-            # Force immediate rerun to display feedback without needing a second click
+            # Force immediate rerun to display feedback
             st.rerun()
 
 
@@ -172,13 +172,8 @@ if st.button('Exit Interview'):
     st.session_state['conversation'] = []
     st.session_state['llm_temperature'] = 0.7
     st.session_state['llm_model_name'] = 'gpt-4o'
-
-    # Clear the job title and job description inputs
     st.session_state['job_title'] = ''
     st.session_state['job_description'] = ''
-
-    # Show a confirmation message
-    st.success("Interview has been exited. You can start a new one.")
     
     # Refresh the app to start the interview from scratch
     st.rerun()
