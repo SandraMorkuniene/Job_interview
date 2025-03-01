@@ -113,15 +113,13 @@ for message in st.session_state['conversation']:
         st.chat_message("assistant").markdown(f"**Feedback:** {message['content']}")
 
 # Continue interview flow
-if st.session_state['questions'] and st.session_state['current_question_index'] < len(st.session_state['questions']):
+if st.session_state['questions'] and 0 <= st.session_state['current_question_index'] < len(st.session_state['questions']):
     current_question = st.session_state['questions'][st.session_state['current_question_index']]
     st.chat_message("assistant").markdown(f"**Question:** {current_question}")
-    response = st.text_input('Your Response:', key='response_input')
+    response = st.text_input('Your Response:', key=f'response_input_{st.session_state["current_question_index"]}')
 
     if st.button('Submit Response') and response:
-        if not is_input_safe(response):
-            st.error("Your response contains potentially unsafe content. Please modify and try again.")
-        else:
+        if is_input_safe(response):
             st.session_state['conversation'].append({'type': 'question', 'content': current_question})
             st.session_state['conversation'].append({'type': 'response', 'content': response})
             
@@ -132,10 +130,11 @@ if st.session_state['questions'] and st.session_state['current_question_index'] 
                     'interview_type': interview_type
                 })
             
-            st.session_state['feedback'] = feedback
             st.session_state['conversation'].append({'type': 'feedback', 'content': feedback})
             st.session_state['current_question_index'] += 1
-            st.session_state['response'] = ''
+        else:
+            st.error("Your response contains potentially unsafe content. Please modify and try again.")  
+
 
 if st.session_state['current_question_index'] >= len(st.session_state['questions']) and st.session_state['current_question_index'] > 0:
     st.markdown('### Interview Completed! Thank you for your responses.')
