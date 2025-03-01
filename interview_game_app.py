@@ -91,14 +91,15 @@ if st.button('Start Interview') and job_description and job_title:
     elif not is_input_safe(job_description):
         st.error("Your job description contains potentially unsafe content. Please modify and try again.")
     else:
-        st.session_state['questions'] = [
-            question_chain.run({
-                'job_title': job_title,
-                'job_description': job_description,
-                'interview_type': interview_type,
-                'conversation_history': memory.load_memory_variables({})['conversation_history']
-            }) for _ in range(10)
-        ]
+        with st.spinner("Preparing interview..."):
+            st.session_state['questions'] = [
+                question_chain.run({
+                    'job_title': job_title,
+                    'job_description': job_description,
+                    'interview_type': interview_type,
+                    'conversation_history': memory.load_memory_variables({})['conversation_history']
+                }) for _ in range(10)
+            ]
         st.session_state['current_question_index'] = 0
         st.session_state['feedback'] = ''
         st.session_state['conversation'] = []
@@ -125,11 +126,12 @@ if st.session_state['questions'] and st.session_state['current_question_index'] 
             st.session_state['conversation'].append({'type': 'question', 'content': current_question})
             st.session_state['conversation'].append({'type': 'response', 'content': response})
             
-            feedback = feedback_chain.run({
-                'response': response,
-                'job_description': job_description,
-                'interview_type': interview_type
-            })
+            with st.spinner("Analyzing your response..."):
+                feedback = feedback_chain.run({
+                    'response': response,
+                    'job_description': job_description,
+                    'interview_type': interview_type
+                })
             
             st.session_state['feedback'] = feedback
             st.session_state['conversation'].append({'type': 'feedback', 'content': feedback})
