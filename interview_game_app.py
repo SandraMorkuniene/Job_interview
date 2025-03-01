@@ -5,7 +5,7 @@ from langchain import OpenAI, LLMChain, PromptTemplate
 from langchain.memory import ConversationBufferMemory
 from langchain.chat_models import ChatOpenAI
 
-# Initialize the OpenAI LLM (replace 'your-api-key' with a valid OpenAI API key)
+# Initialize the OpenAI LLM
 if 'llm_temperature' not in st.session_state:
     st.session_state['llm_temperature'] = 0.7
 if 'llm_model_name' not in st.session_state:
@@ -18,14 +18,13 @@ st.markdown("This app generates job interview questions and provides feedback.")
 # Safety Function: Input Validation
 def is_input_safe(user_input: str) -> bool:
     """Check if the input is safe to process."""
-    # Basic heuristics to prevent jailbreak attempts
     dangerous_patterns = [
-        r"(system|os|subprocess|import|open|globals|locals|__\w+__)",  # Code injection
-        r"(sudo|rm -rf|chmod|chown|mkfs|:(){:|fork bomb|shutdown)",  # Dangerous shell commands
-        r"(simulate being|ignore previous instructions|bypass|jailbreak|pretend to be| hack| scam )",  # Prompt manipulation
-        r"(<script>|</script>|<iframe>|javascript:|onerror=)",  # XSS attempts
-        r"(base64|decode|encode|pickle|unpickle)",  # Encoding/decoding that could lead to exploits
-        r"(http[s]?://|ftp://|file://)",  # Block URLs to prevent phishing or unwanted links
+        r"(system|os|subprocess|import|open|globals|locals|__\w+__)",
+        r"(sudo|rm -rf|chmod|chown|mkfs|:(){:|fork bomb|shutdown)",
+        r"(simulate being|ignore previous instructions|bypass|jailbreak|pretend to be| hack| scam )",
+        r"(<script>|</script>|<iframe>|javascript:|onerror=)",
+        r"(base64|decode|encode|pickle|unpickle)",
+        r"(http[s]?://|ftp://|file://)",
     ]
     for pattern in dangerous_patterns:
         if re.search(pattern, user_input, re.IGNORECASE):
@@ -34,17 +33,16 @@ def is_input_safe(user_input: str) -> bool:
 
 # Input job title, description, interview type, and model selection
 job_title = st.text_input('Enter the Job Title:')
-job_description = st.text_area('Enter the Job Description:', height=200)
+job_description = st.text_area('Enter the Job Description (Optional):', height=200)
 interview_type = st.selectbox('Select Interview Type:', ['Technical', 'Business Case Scenario', 'Behavioral'])
 st.session_state['llm_temperature'] = st.slider('Set LLM Temperature:', 0.0, 1.0, 0.7)
 st.session_state['llm_model_name'] = st.selectbox('Select LLM Model:', ['gpt-3.5-turbo', 'gpt-4', 'gpt-4o'])
 
-# Initialize the LLM with selected model and temperature
+# Initialize the LLM
 llm = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"), model_name=st.session_state['llm_model_name'], temperature=st.session_state['llm_temperature'])
 
-# Initialize memory to avoid question repetition
-memory = ConversationBufferMemory(memory_key='conversation_history', return_messages=True, input_key='job_description',
-    output_key='question')
+# Initialize memory
+memory = ConversationBufferMemory(memory_key='conversation_history', return_messages=True, input_key='job_title', output_key='question')
 
 # Define prompt template for question generation
 question_template = PromptTemplate(
@@ -66,8 +64,8 @@ feedback_template = PromptTemplate(
     the job description: "{job_description}",
     and the interview type: "{interview_type}",
     provide feedback on how well this response aligns with the expectations for this type of interview.
-    Assess the response based on relevance, depth of knowledge, and appropriateness (fit for interview type and also content itself: answer is correct or not) for the interview type. If it's good, acknowledge and ask the next question.If it's bad, provide feedback on ways how to improve it and move on.
-
+    Assess the response based on relevance, depth of knowledge, and appropriateness (fit for interview type and content accuracy). 
+    If it's good, acknowledge and ask the next question. If it's bad, provide feedback on ways to improve it and move on.
     """
 )
 
@@ -85,19 +83,20 @@ if 'feedback' not in st.session_state:
 if 'conversation' not in st.session_state:
     st.session_state['conversation'] = []
 
-if st.button('Start Interview') and job_description and job_title:
+# Start interview even if only job title is provided
+if st.button('Start Interview') and job_title:
     if not is_input_safe(job_title):
         st.error("Your job title contains potentially unsafe content. Please modify and try again.")
-    elif not is_input_safe(job_description):
+    elif job_description and not is_input_safe(job_description):
         st.error("Your job description contains potentially unsafe content. Please modify and try again.")
     else:
         with st.spinner("Preparing interview..."):
             st.session_state['questions'] = [
                 question_chain.run({
                     'job_title': job_title,
-                    'job_description': job_description,
+                    'job_description': job_description if job_description else "No specific job description provided",
                     'interview_type': interview_type,
-                    'conversation_history': memory.load_memory_variables({})['conversation_history']
+                    'conversation_history': memory.load_memory_variables({}).get('conversation_history', '')
                 }) for _ in range(10)
             ]
         st.session_state['current_question_index'] = 0
@@ -113,7 +112,7 @@ for message in st.session_state['conversation']:
     elif message['type'] == 'feedback':
         st.chat_message("assistant").markdown(f"**Feedback:** {message['content']}")
 
-# Continue interview flow with safety checks
+# Continue interview flow
 if st.session_state['questions'] and st.session_state['current_question_index'] < len(st.session_state['questions']):
     current_question = st.session_state['questions'][st.session_state['current_question_index']]
     st.chat_message("assistant").markdown(f"**Question:** {current_question}")
@@ -129,17 +128,14 @@ if st.session_state['questions'] and st.session_state['current_question_index'] 
             with st.spinner("Analyzing your response..."):
                 feedback = feedback_chain.run({
                     'response': response,
-                    'job_description': job_description,
+                    'job_description': job_description if job_description else "No specific job description provided",
                     'interview_type': interview_type
                 })
             
             st.session_state['feedback'] = feedback
             st.session_state['conversation'].append({'type': 'feedback', 'content': feedback})
-
-            # Move to the next question automatically
             st.session_state['current_question_index'] += 1
             st.session_state['response'] = ''
 
-# End of interview
 if st.session_state['current_question_index'] >= len(st.session_state['questions']) and st.session_state['current_question_index'] > 0:
     st.markdown('### Interview Completed! Thank you for your responses.')
