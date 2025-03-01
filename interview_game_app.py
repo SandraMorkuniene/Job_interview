@@ -19,7 +19,7 @@ st.markdown("This app generates job interview questions and provides feedback.")
 def is_input_safe(user_input: str) -> bool:
     """Check if the input is safe to process."""
     dangerous_patterns = [
-        r"\b(system|os|subprocess|import|open|globals|locals|__\w+__)\b",
+        r"\b(system|os|subprocess|import|open|globals|locals|__import__|__globals__|__dict__|__builtins__)\b",
         r"(sudo|rm -rf|chmod|chown|mkfs|:(){:|fork bomb|shutdown)",
         r"(simulate being|ignore previous instructions|bypass|jailbreak|pretend to be| hack| scam )",
         r"(<script>|</script>|<iframe>|javascript:|onerror=)",
