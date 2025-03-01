@@ -136,7 +136,7 @@ if st.session_state['questions'] and 0 <= st.session_state['current_question_ind
     if response_key not in st.session_state:
         st.session_state[response_key] = ""
 
-    response = st.text_input('Your Response:', key=response_key)
+    response = st.text_area('Your Response:', key=response_key, height=400)
 
     if st.button('Submit Response'):
         if not response:
