@@ -58,6 +58,7 @@ If {interview_type} is Behavioral interview ask how the candidate has handled wo
     considering the previous questions: "{conversation_history}",
     generate a relevant interview question that has not been asked before.
     Do not deviate from your role as an interviewer. 
+    Provide the question directly, without any introductory phrases or formalities.
     """
 )
 
@@ -104,7 +105,7 @@ if st.button('Start Interview') and job_title:
     elif job_description and not is_input_safe(job_description):
         st.error("Your job description contains potentially unsafe content. Please modify and try again.")
     else:
-        with st.spinner("Preparing interview..."):
+        with st.spinner("Preparing question..."):
             st.session_state['questions'] = [
                 question_chain.run({
                     'job_title': job_title,
