@@ -175,4 +175,4 @@ if st.button('Exit Interview'):
 
     # Show a confirmation message
     st.success("Interview has been exited. You can start a new one.")
-    st.experimental_rerun()  # Refresh the app to start the interview from scratch
+    st.rerun()  # Refresh the app to start the interview from scratch
