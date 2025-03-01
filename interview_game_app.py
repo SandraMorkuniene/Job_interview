@@ -48,6 +48,10 @@ memory = ConversationBufferMemory(memory_key='conversation_history', return_mess
 question_template = PromptTemplate(
     input_variables=['job_title', 'job_description', 'interview_type', 'conversation_history'],
     template="""
+    You are a hiring manager conducting a {job_title} job interview for job postion which could be described by this  {job_description}. 
+If {interview_type} is Technical interview, ask job-specific technical questions, one at a time, covering key concepts from that specialization area. 
+If {interview_type} is Business Case Scenario interview,  present a business scenario or case study and ask how the candidate would analyze and solve it. 
+If {interview_type} is Behavioral interview ask questions to assess how the candidate has handled work situations in the past, based on STAR (Situation, Task, Action, Result) model. 
     Based on the job title: "{job_title}",
     job description: "{job_description}",
     and the interview type: "{interview_type}",
