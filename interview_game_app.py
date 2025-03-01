@@ -163,3 +163,16 @@ if st.session_state['questions'] and 0 <= st.session_state['current_question_ind
 
 if st.session_state['current_question_index'] >= len(st.session_state['questions']) and st.session_state['current_question_index'] > 0:
     st.markdown('### Interview Completed! Thank you for your responses.')
+
+if st.button('Exit Interview'):
+    # Reset session state variables to restart the interview
+    st.session_state['questions'] = []
+    st.session_state['current_question_index'] = -1
+    st.session_state['feedback'] = ''
+    st.session_state['conversation'] = []
+    st.session_state['llm_temperature'] = 0.7
+    st.session_state['llm_model_name'] = 'gpt-4o'
+
+    # Show a confirmation message
+    st.success("Interview has been exited. You can start a new one.")
+    st.experimental_rerun()  # Refresh the app to start the interview from scratch
