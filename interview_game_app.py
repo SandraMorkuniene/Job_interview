@@ -173,6 +173,12 @@ if st.button('Exit Interview'):
     st.session_state['llm_temperature'] = 0.7
     st.session_state['llm_model_name'] = 'gpt-4o'
 
+    # Clear the job title and job description inputs
+    st.session_state['job_title'] = ''
+    st.session_state['job_description'] = ''
+
     # Show a confirmation message
     st.success("Interview has been exited. You can start a new one.")
-    st.rerun()  # Refresh the app to start the interview from scratch
+    
+    # Refresh the app to start the interview from scratch
+    st.rerun()
