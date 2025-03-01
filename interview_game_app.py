@@ -172,6 +172,8 @@ if st.button('Exit Interview'):
     st.session_state['conversation'] = []
     st.session_state['llm_temperature'] = 0.7
     st.session_state['llm_model_name'] = 'gpt-4o'
+    st.session_state['job_title'] = ''
+    st.session_state['job_description'] = ''
     st.text_input('Enter the Job Title:', value='', key='job_title')
     st.text_area('Enter the Job Description (Optional):', value='', height=200, key='job_description')
 
