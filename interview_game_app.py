@@ -181,9 +181,3 @@ if st.button('Exit Interview'):
         del st.session_state['job_description']
 
     
-     #Inject JavaScript to refresh the page
-    st.components.v1.html("""
-        <script>
-            window.location.reload();
-        </script>
-    """, height=0)
