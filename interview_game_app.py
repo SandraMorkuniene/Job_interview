@@ -116,24 +116,34 @@ for message in st.session_state['conversation']:
 if st.session_state['questions'] and 0 <= st.session_state['current_question_index'] < len(st.session_state['questions']):
     current_question = st.session_state['questions'][st.session_state['current_question_index']]
     st.chat_message("assistant").markdown(f"**Question:** {current_question}")
-    response = st.text_input('Your Response:', key=f'response_input_{st.session_state["current_question_index"]}')
 
-    if st.button('Submit Response') and response:
-        if is_input_safe(response):
+    response_key = f'response_input_{st.session_state["current_question_index"]}'
+    if response_key not in st.session_state:
+        st.session_state[response_key] = ""
+
+    response = st.text_input('Your Response:', key=response_key)
+
+    if st.button('Submit Response'):
+        if not response:
+            st.error("Please enter a response before submitting.")
+        elif not is_input_safe(response):
+            st.error("Your response contains potentially unsafe content. Please modify and try again.")
+        else:
             st.session_state['conversation'].append({'type': 'question', 'content': current_question})
             st.session_state['conversation'].append({'type': 'response', 'content': response})
-            
+
             with st.spinner("Analyzing your response..."):
                 feedback = feedback_chain.run({
                     'response': response,
                     'job_description': job_description if job_description else "No specific job description provided",
                     'interview_type': interview_type
                 })
-            
+
             st.session_state['conversation'].append({'type': 'feedback', 'content': feedback})
             st.session_state['current_question_index'] += 1
-        else:
-            st.error("Your response contains potentially unsafe content. Please modify and try again.")  
+
+            # Force immediate rerun to display feedback without needing a second click
+            st.rerun()
 
 
 if st.session_state['current_question_index'] >= len(st.session_state['questions']) and st.session_state['current_question_index'] > 0:
