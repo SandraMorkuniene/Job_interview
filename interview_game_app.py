@@ -21,7 +21,7 @@ def is_input_safe(user_input: str) -> bool:
     dangerous_patterns = [
         r"\b(system|os|subprocess|import|open|globals|locals|__import__|__globals__|__dict__|__builtins__)\b",
         r"(sudo|rm -rf|chmod|chown|mkfs|:(){:|fork bomb|shutdown)",
-        r"/b(simulate being|ignore previous instructions|bypass|jailbreak|pretend to be|hack|scam )\b",
+        r"\b(simulate being|ignore previous instructions|bypass|jailbreak|pretend to be|hack|scam )\b",
         r"(<script>|</script>|<iframe>|javascript:|onerror=)",
         r"(base64|decode|encode|pickle|unpickle)",
         r"(http[s]?://|ftp://|file://)",
