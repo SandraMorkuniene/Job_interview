@@ -135,8 +135,18 @@ if st.session_state['interview_active']:
                 })
             
             st.session_state['conversation'].append({'type': 'feedback', 'content': feedback})
-            st.session_state['current_question'] = None  # Ensure a new question is generated
+            
+            # Generate a new question
+            with st.spinner("Generating next question..."):
+                st.session_state['current_question'] = question_chain.run({
+                    'job_title': job_title,
+                    'job_description': job_description if job_description else "No specific job description provided",
+                    'interview_type': interview_type,
+                    'conversation_history': memory.load_memory_variables({}).get('conversation_history', '')
+                })
+            
             st.rerun()
+
 
 # Display conversation history
 for message in st.session_state['conversation']:
