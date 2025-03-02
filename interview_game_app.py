@@ -64,9 +64,8 @@ feedback_template = PromptTemplate(
     Considering the response: "{response}",
     the job description: "{job_description}",
     and the interview type: "{interview_type}",
-    evaluate the response for clarity, relevance, and depth. 
-    If the response is unclear or lacks detail, suggest a follow-up question to guide the candidate.
-    Otherwise, provide constructive feedback.
+    evaluate the response for clarity, relevance, and depth, provide constructive feedback. 
+
     """
 )
 
