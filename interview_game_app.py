@@ -89,6 +89,8 @@ if 'conversation' not in st.session_state:
     st.session_state['conversation'] = []
 if 'interview_active' not in st.session_state:
     st.session_state['interview_active'] = False
+if 'current_question' not in st.session_state:
+    st.session_state['current_question'] = None
 
 # Start interview
 if st.button('Start Interview') and job_title:
@@ -99,20 +101,21 @@ if st.button('Start Interview') and job_title:
     else:
         st.session_state['interview_active'] = True
         st.session_state['conversation'] = []
+        st.session_state['current_question'] = None
         st.rerun()
 
 # Conduct Interview
 if st.session_state['interview_active']:
-    with st.spinner("Generating question..."):
-        question = question_chain.run({
-            'job_title': job_title,
-            'job_description': job_description if job_description else "No specific job description provided",
-            'interview_type': interview_type,
-            'conversation_history': memory.load_memory_variables({}).get('conversation_history', '')
-        })
+    if not st.session_state['current_question']:
+        with st.spinner("Generating question..."):
+            st.session_state['current_question'] = question_chain.run({
+                'job_title': job_title,
+                'job_description': job_description if job_description else "No specific job description provided",
+                'interview_type': interview_type,
+                'conversation_history': memory.load_memory_variables({}).get('conversation_history', '')
+            })
     
-    st.session_state['conversation'].append({'type': 'question', 'content': question})
-    st.chat_message("assistant").markdown(f"**Question:** {question}")
+    st.chat_message("assistant").markdown(f"**Question:** {st.session_state['current_question']}")
     
     response = st.text_area('Your Response:', height=400)
     if st.button('Submit Response'):
@@ -121,6 +124,7 @@ if st.session_state['interview_active']:
         elif not is_input_safe(response):
             st.error("Your response contains potentially unsafe content. Please modify and try again.")
         else:
+            st.session_state['conversation'].append({'type': 'question', 'content': st.session_state['current_question']})
             st.session_state['conversation'].append({'type': 'response', 'content': response})
             
             with st.spinner("Analyzing response..."):
@@ -131,6 +135,7 @@ if st.session_state['interview_active']:
                 })
             
             st.session_state['conversation'].append({'type': 'feedback', 'content': feedback})
+            st.session_state['current_question'] = None
             st.rerun()
 
 # Display conversation history
@@ -146,6 +151,5 @@ for message in st.session_state['conversation']:
 if st.button('Exit Interview'):
     st.session_state['interview_active'] = False
     st.session_state['conversation'] = []
+    st.session_state['current_question'] = None
     st.rerun()
-
-    
