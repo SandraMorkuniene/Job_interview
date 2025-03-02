@@ -135,17 +135,12 @@ if st.session_state['interview_active']:
                 })
             
             st.session_state['conversation'].append({'type': 'feedback', 'content': feedback})
-            st.session_state['current_question'] = None
+            st.session_state['current_question'] = None  # Ensure a new question is generated
             st.rerun()
 
 # Display conversation history
 for message in st.session_state['conversation']:
-    if message['type'] == 'question':
-        st.chat_message("assistant").markdown(f"**Question:** {message['content']}")
-    elif message['type'] == 'response':
-        st.chat_message("user").markdown(f"**Your Response:** {message['content']}")
-    elif message['type'] == 'feedback':
-        st.chat_message("assistant").markdown(f"**Feedback:** {message['content']}")
+    st.chat_message("assistant").markdown(f"**{message['type'].capitalize()}:** {message['content']}")
 
 # Exit interview
 if st.button('Exit Interview'):
