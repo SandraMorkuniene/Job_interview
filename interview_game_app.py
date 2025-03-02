@@ -70,53 +70,46 @@ feedback_template = PromptTemplate(
     """
 )
 
-# Create LangChain objects
+# Create LangChain for generating questions and feedback
 question_chain = LLMChain(llm=llm, prompt=question_template, memory=memory, output_key='question')
 feedback_chain = LLMChain(llm=llm, prompt=feedback_template, output_key='feedback')
 
-# Initialize session state
-if 'interview_active' not in st.session_state:
-    st.session_state['interview_active'] = False
+# Initialize session state variables
 if 'current_question' not in st.session_state:
     st.session_state['current_question'] = None
+if 'waiting_for_followup' not in st.session_state:
+    st.session_state['waiting_for_followup'] = False
 if 'conversation' not in st.session_state:
     st.session_state['conversation'] = []
-if 'waiting_for_helping_question' not in st.session_state:
-    st.session_state['waiting_for_helping_question'] = False
 
-# Start interview
+# Start Interview
 if st.button('Start Interview') and job_title:
     if not is_input_safe(job_title):
-        st.error("Your job title contains potentially unsafe content. Please modify and try again.")
+        st.error("Your job title contains unsafe content. Modify and try again.")
     elif job_description and not is_input_safe(job_description):
-        st.error("Your job description contains potentially unsafe content. Please modify and try again.")
+        st.error("Your job description contains unsafe content. Modify and try again.")
     else:
-        st.session_state['interview_active'] = True
         st.session_state['conversation'] = []
-        st.session_state['current_question'] = None
-        st.session_state['waiting_for_helping_question'] = False
+        st.session_state['waiting_for_followup'] = False
+        st.session_state['current_question'] = question_chain.run({
+            'job_title': job_title,
+            'job_description': job_description if job_description else "No specific job description provided",
+            'interview_type': interview_type,
+            'conversation_history': memory.load_memory_variables({}).get('conversation_history', '')
+        })
         st.rerun()
 
-# Conduct Interview
-if st.session_state['interview_active']:
-    if not st.session_state['current_question']:
-        with st.spinner("Generating question..."):
-            st.session_state['current_question'] = question_chain.run({
-                'job_title': job_title,
-                'job_description': job_description if job_description else "No specific job description provided",
-                'interview_type': interview_type,
-                'conversation_history': memory.load_memory_variables({}).get('conversation_history', '')
-            })
-
+# Interview flow
+if st.session_state['current_question']:
     st.chat_message("assistant").markdown(f"**Question:** {st.session_state['current_question']}")
-
+    
     response = st.text_area('Your Response:', height=400)
 
     if st.button('Submit Response'):
         if not response:
             st.error("Please enter a response before submitting.")
         elif not is_input_safe(response):
-            st.error("Your response contains potentially unsafe content. Please modify and try again.")
+            st.error("Your response contains unsafe content. Modify and try again.")
         else:
             st.session_state['conversation'].append({'type': 'question', 'content': st.session_state['current_question']})
             st.session_state['conversation'].append({'type': 'response', 'content': response})
@@ -128,30 +121,38 @@ if st.session_state['interview_active']:
                     'interview_type': interview_type
                 })
 
-            st.session_state['conversation'].append({'type': 'feedback', 'content': feedback})
-
-            # Check if a follow-up question is needed
-            if "suggest a follow-up question" in feedback.lower():
-                st.session_state['waiting_for_helping_question'] = True
+            # Extract follow-up question if response is weak
+            if "Response Strength Classification: Weak" in feedback:
+                followup_match = re.search(r'Follow-up Question: (.+)', feedback)
+                if followup_match:
+                    followup_question = followup_match.group(1)
+                    st.session_state['current_question'] = followup_question
+                    st.session_state['waiting_for_followup'] = True
+                else:
+                    st.session_state['waiting_for_followup'] = False
             else:
-                st.session_state['waiting_for_helping_question'] = False
+                st.session_state['waiting_for_followup'] = False
 
-            st.session_state['current_question'] = None  # Reset for next question
+            # Append feedback
+            st.session_state['conversation'].append({'type': 'feedback', 'content': feedback})
+            
+            # If response was strong, ask a new question
+            if not st.session_state['waiting_for_followup']:
+                st.session_state['current_question'] = question_chain.run({
+                    'job_title': job_title,
+                    'job_description': job_description if job_description else "No specific job description provided",
+                    'interview_type': interview_type,
+                    'conversation_history': memory.load_memory_variables({}).get('conversation_history', '')
+                })
+
             st.rerun()
 
 # Display conversation history
 for message in st.session_state['conversation']:
-    if message['type'] == 'question':
-        st.chat_message("assistant").markdown(f"**Question:** {message['content']}")
-    elif message['type'] == 'response':
-        st.chat_message("user").markdown(f"**Your Response:** {message['content']}")
-    elif message['type'] == 'feedback':
-        st.chat_message("assistant").markdown(f"**Feedback:** {message['content']}")
+    role = "assistant" if message['type'] in ['question', 'feedback'] else "user"
+    st.chat_message(role).markdown(f"**{message['type'].capitalize()}:** {message['content']}")
 
-# Exit interview
+# Exit interview button
 if st.button('Exit Interview'):
-    st.session_state['interview_active'] = False
-    st.session_state['conversation'] = []
-    st.session_state['current_question'] = None
-    st.session_state['waiting_for_helping_question'] = False
+    st.session_state.clear()
     st.rerun()
