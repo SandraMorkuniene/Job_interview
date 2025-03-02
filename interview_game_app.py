@@ -11,11 +11,11 @@ if 'llm_temperature' not in st.session_state:
 if 'llm_model_name' not in st.session_state:
     st.session_state['llm_model_name'] = 'gpt-4o'
 
-# Set up Streamlit app
+# Set up Streamlit
 st.title('AI Interviewer')
 st.markdown("This app generates job interview questions and provides feedback.")
 
-# Safety Function: Input Validation
+# Safety Function
 def is_input_safe(user_input: str) -> bool:
     """Check if the input is safe to process."""
     dangerous_patterns = [
@@ -31,7 +31,7 @@ def is_input_safe(user_input: str) -> bool:
             return False
     return True
 
-# Input job title, description, interview type, and model selection
+# Inputs and selections of interview type, temperature, and model
 job_title = st.text_input('Enter the Job Title:')
 job_description = st.text_area('Enter the Job Description (Optional):', height=200)
 interview_type = st.selectbox('Select Interview Type:', ['Technical', 'Business Case Scenario', 'Behavioral'])
@@ -80,11 +80,11 @@ feedback_template = PromptTemplate(
     """
 )
 
-# Create LangChain for generating questions and feedback
+# LangChain for generating questions and feedback
 question_chain = LLMChain(llm=llm, prompt=question_template, memory=memory, output_key='question')
 feedback_chain = LLMChain(llm=llm, prompt=feedback_template, output_key='feedback')
 
-# Initialize session state for persistence
+# Initialize session state
 if 'questions' not in st.session_state:
     st.session_state['questions'] = []
 if 'current_question_index' not in st.session_state:
@@ -94,7 +94,7 @@ if 'feedback' not in st.session_state:
 if 'conversation' not in st.session_state:
     st.session_state['conversation'] = []
 
-# Start interview even if only job title is provided
+# Start interview
 if st.button('Start Interview') and job_title:
     if not is_input_safe(job_title):
         st.error("Your job title contains potentially unsafe content. Please modify and try again.")
@@ -161,7 +161,7 @@ if st.session_state['current_question_index'] >= len(st.session_state['questions
     st.markdown('### Interview Completed! Thank you for your responses.')
 
 if st.button('Exit Interview'):
-    # Reset session state variables to restart the interview
+    # Reset session state variables
     st.session_state['questions'] = []
     st.session_state['current_question_index'] = -1
     st.session_state['feedback'] = ''
