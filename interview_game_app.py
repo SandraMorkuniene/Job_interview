@@ -36,9 +36,10 @@ st.session_state['llm_temperature'] = st.slider('Set LLM Temperature:', 0.0, 1.0
 st.session_state['llm_model_name'] = st.selectbox('Select LLM Model:', ['gpt-3.5-turbo', 'gpt-4', 'gpt-4o'])
 
 # Initialize LLM
-llm = ChatOpenAI(openai_api_key=st.secrets["OPENAI_API_KEY"], 
-                 model_name=st.session_state['llm_model_name'], 
-                 temperature=st.session_state['llm_temperature'])
+llm = ChatOpenAI(
+    model_name=st.session_state['llm_model_name'],
+    temperature=st.session_state['llm_temperature']
+)
 
 # Initialize memory
 memory = ConversationBufferMemory(memory_key='conversation_history', return_messages=True, 
