@@ -22,4 +22,3 @@ langchain-community==0.3.18
 langchain-core==0.3.37
 langchain-text-splitters==0.3.6
 langcodes==3.5.0
-langsmith==0.3.8
