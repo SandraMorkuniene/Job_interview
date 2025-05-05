@@ -3,7 +3,8 @@ import os
 import re
 from langchain import OpenAI, LLMChain, PromptTemplate
 from langchain.memory import ConversationBufferMemory
-from langchain.chat_models import ChatOpenAI
+#from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 
 # Initialize the OpenAI LLM
 if 'llm_temperature' not in st.session_state:
