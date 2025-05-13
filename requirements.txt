@@ -19,6 +19,6 @@ oauthlib==3.2.2
 langchain-openai==0.1.6
 langchain==0.3.19
 langchain-community==0.3.18
-langchain-core==0.3.37
+langchain-core==0.1.47
 langchain-text-splitters==0.3.6
 langcodes==3.5.0
